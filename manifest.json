@@ -2,7 +2,7 @@
   "name": "Rental Tracker",
   "short_name": "Rental",
   "description": "Track rental property payments and issues",
-  "start_url": "/",
+  "start_url": "/rental-tracker/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
