@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Rental Tracker" />
+  <meta name="theme-color" content="#2563eb" />
+  <title>Rental Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     SIGN-IN SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="screen-signin" class="screen active">
+  <div class="signin-wrapper">
+    <div class="signin-logo">🏠</div>
+    <h1 class="signin-title">Rental Tracker</h1>
+    <p class="signin-subtitle">Track payments and issues across all your rental properties</p>
+    <button id="btn-signin" class="btn-google">
+      <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <p class="signin-note">Your data is stored securely in your shared Google Drive folder</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN APP SHELL
+══════════════════════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
+
+  <!-- Header -->
+  <header class="app-header">
+    <button id="btn-back" class="icon-btn hidden" title="Back" aria-label="Back">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <span id="header-title" class="header-title">Dashboard</span>
+    <div class="header-right">
+      <span id="sync-status" class="sync-status"></span>
+      <button id="btn-sync" class="icon-btn" title="Sync now" aria-label="Sync">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline>
+          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+        </svg>
+      </button>
+      <button id="btn-user-menu" class="icon-btn user-avatar" title="Account" aria-label="Account">?</button>
+    </div>
+  </header>
+
+  <!-- User dropdown -->
+  <div id="user-dropdown" class="user-dropdown hidden" role="menu">
+    <div id="user-info-name" class="user-info-name"></div>
+    <div id="user-info-email" class="user-info-email"></div>
+    <div id="last-updated-info" class="last-updated-info"></div>
+    <button id="btn-signout" class="btn-signout">Sign out</button>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <main id="page-dashboard" class="page active">
+    <div class="page-content">
+      <div id="summary-cards" class="summary-cards"></div>
+      <h2 class="section-heading">Properties Overview</h2>
+      <div id="dashboard-list" class="card-list"></div>
+    </div>
+  </main>
+
+  <!-- ── PROPERTIES ── -->
+  <main id="page-properties" class="page">
+    <div class="page-content">
+      <div class="page-actions">
+        <button id="btn-add-property" class="btn-primary">+ Add Property</button>
+      </div>
+      <div id="properties-list" class="card-list"></div>
+    </div>
+  </main>
+
+  <!-- ── PROPERTY DETAIL (full-screen overlay) ── -->
+  <main id="page-property-detail" class="page detail-page"></main>
+
+  <!-- ── PAYMENTS ── -->
+  <main id="page-payments" class="page">
+    <div class="page-content">
+      <div class="filter-row">
+        <label class="filter-label" for="payment-property-filter">Property</label>
+        <select id="payment-property-filter" class="select-input"></select>
+      </div>
+      <div class="page-actions">
+        <button id="btn-add-payment" class="btn-primary">+ Log Payment</button>
+      </div>
+      <div id="payments-list" class="card-list"></div>
+    </div>
+  </main>
+
+  <!-- ── ISSUES ── -->
+  <main id="page-issues" class="page">
+    <div class="page-content">
+      <div class="filter-row">
+        <label class="filter-label" for="issue-property-filter">Property</label>
+        <select id="issue-property-filter" class="select-input"></select>
+      </div>
+      <div class="page-actions">
+        <button id="btn-add-issue" class="btn-primary">+ Log Issue</button>
+      </div>
+      <div id="issues-list" class="card-list"></div>
+    </div>
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-btn active" data-page="dashboard" aria-label="Dashboard">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-btn" data-page="properties" aria-label="Properties">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Properties</span>
+    </button>
+    <button class="nav-btn" data-page="payments" aria-label="Payments">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+        <line x1="1" y1="10" x2="23" y2="10"></line>
+      </svg>
+      <span>Payments</span>
+    </button>
+    <button class="nav-btn" data-page="issues" aria-label="Issues">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>Issues</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════════════════ -->
+
+<!-- Property Modal -->
+<div id="modal-property" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-property-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-property-title">Add Property</h2>
+      <button class="modal-close" data-modal="modal-property" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-property" class="modal-form" novalidate>
+      <input type="hidden" id="prop-id" />
+      <label class="form-label">Property Name / Address *
+        <input type="text" id="prop-name" class="form-input" placeholder="e.g. 123 Main Street" required autocomplete="off" />
+      </label>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary modal-close" data-modal="modal-property">Cancel</button>
+        <button type="submit" class="btn-primary">Save Property</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tenancy Modal (Add / Edit current tenant) -->
+<div id="modal-tenancy" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-tenancy-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-tenancy-title">Add Tenant</h2>
+      <button class="modal-close" data-modal="modal-tenancy" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-tenancy" class="modal-form" novalidate>
+      <input type="hidden" id="ten-prop-id" />
+      <input type="hidden" id="ten-id" />
+      <label class="form-label">Tenant Name *
+        <input type="text" id="ten-name" class="form-input" placeholder="e.g. John Smith" required autocomplete="off" />
+      </label>
+      <label class="form-label">Lease Start Date *
+        <input type="date" id="ten-lease-start" class="form-input" required />
+      </label>
+      <label class="form-label">Monthly Rent ($) *
+        <input type="number" id="ten-rent" class="form-input" placeholder="e.g. 1500" min="0" step="0.01" required />
+      </label>
+      <label class="form-label">Deposit Paid ($) *
+        <input type="number" id="ten-deposit" class="form-input" placeholder="e.g. 3000" min="0" step="0.01" required />
+      </label>
+      <label class="form-label">Yearly Rent Increment (%) *
+        <input type="number" id="ten-increment" class="form-input" placeholder="e.g. 3" min="0" step="0.1" value="0" required />
+      </label>
+      <div id="ten-end-note" class="info-box hidden">
+        Past tenancy records are read-only — editing applies to current tenant only.
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary modal-close" data-modal="modal-tenancy">Cancel</button>
+        <button type="submit" class="btn-primary">Save Tenant</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- End Tenancy & Add New Tenant Modal -->
+<div id="modal-end-tenancy" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-end-tenancy-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-end-tenancy-title">Change Tenant</h2>
+      <button class="modal-close" data-modal="modal-end-tenancy" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-end-tenancy" class="modal-form" novalidate>
+      <input type="hidden" id="end-ten-prop-id" />
+      <input type="hidden" id="end-ten-id" />
+
+      <div class="warning-box">
+        <strong>⚠ Ending tenancy for: <span id="end-ten-name"></span></strong><br />
+        All their payment history will be permanently preserved. This cannot be undone.
+      </div>
+
+      <div class="form-section-label">Step 1 — Close current tenancy</div>
+      <label class="form-label">Lease End Date *
+        <input type="date" id="end-ten-date" class="form-input" required />
+      </label>
+
+      <div class="form-section-label" style="margin-top:20px">Step 2 — New tenant details</div>
+      <label class="form-label">New Tenant Name *
+        <input type="text" id="new-ten-name" class="form-input" placeholder="e.g. Jane Doe" required autocomplete="off" />
+      </label>
+      <label class="form-label">Lease Start Date *
+        <input type="date" id="new-ten-lease-start" class="form-input" required />
+      </label>
+      <label class="form-label">Monthly Rent ($) *
+        <input type="number" id="new-ten-rent" class="form-input" placeholder="e.g. 1600" min="0" step="0.01" required />
+      </label>
+      <label class="form-label">Deposit Paid ($) *
+        <input type="number" id="new-ten-deposit" class="form-input" placeholder="e.g. 3200" min="0" step="0.01" required />
+      </label>
+      <label class="form-label">Yearly Rent Increment (%) *
+        <input type="number" id="new-ten-increment" class="form-input" placeholder="e.g. 3" min="0" step="0.1" value="0" required />
+      </label>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary modal-close" data-modal="modal-end-tenancy">Cancel</button>
+        <button type="submit" class="btn-danger">End Tenancy &amp; Add New</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div id="modal-payment" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-payment-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-payment-title">Log Payment</h2>
+      <button class="modal-close" data-modal="modal-payment" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-payment" class="modal-form" novalidate>
+      <input type="hidden" id="pay-id" />
+      <input type="hidden" id="pay-prop-id" />
+      <input type="hidden" id="pay-tenancy-id" />
+      <label class="form-label">Due Date *
+        <input type="date" id="pay-due-date" class="form-input" required />
+      </label>
+      <label class="form-label">Amount Due ($) *
+        <input type="number" id="pay-amount-due" class="form-input" placeholder="e.g. 1500" min="0" step="0.01" required />
+      </label>
+      <label class="form-label">Amount Paid ($)
+        <input type="number" id="pay-amount-paid" class="form-input" placeholder="e.g. 1500" min="0" step="0.01" />
+      </label>
+      <label class="form-label">Date Received
+        <input type="date" id="pay-date-received" class="form-input" />
+      </label>
+      <label class="form-label">Notes
+        <input type="text" id="pay-notes" class="form-input" placeholder="Optional" autocomplete="off" />
+      </label>
+      <div id="pay-status-preview" class="status-preview"></div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary modal-close" data-modal="modal-payment">Cancel</button>
+        <button type="submit" class="btn-primary">Save Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Issue Modal -->
+<div id="modal-issue" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-issue-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-issue-title">Log Issue</h2>
+      <button class="modal-close" data-modal="modal-issue" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-issue" class="modal-form" novalidate>
+      <input type="hidden" id="issue-id" />
+      <input type="hidden" id="issue-prop-id" />
+      <label class="form-label">Date *
+        <input type="date" id="issue-date" class="form-input" required />
+      </label>
+      <label class="form-label">Description *
+        <input type="text" id="issue-desc" class="form-input" placeholder="e.g. Leaking tap in bathroom" required autocomplete="off" />
+      </label>
+      <label class="form-label">Status *
+        <select id="issue-status-sel" class="form-input select-input" required>
+          <option value="Open">Open</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+      </label>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary modal-close" data-modal="modal-issue">Cancel</button>
+        <button type="submit" class="btn-primary">Save Issue</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="modal-confirm" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="modal-confirm-title">Confirm</h2>
+    </div>
+    <p id="confirm-message" class="confirm-message"></p>
+    <div class="form-actions">
+      <button id="confirm-cancel" class="btn-secondary">Cancel</button>
+      <button id="confirm-ok" class="btn-danger">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="toast hidden" role="alert" aria-live="polite"></div>
+
+<script src="drive.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

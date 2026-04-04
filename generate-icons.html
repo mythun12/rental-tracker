@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Generate PWA Icons</title>
+  <style>
+    body { font-family: sans-serif; padding: 32px; max-width: 500px; }
+    button { padding: 10px 20px; background: #2563eb; color: white; border: none;
+             border-radius: 8px; cursor: pointer; font-size: 1rem; margin: 6px; }
+    button:hover { background: #1d4ed8; }
+    canvas { display: block; margin: 16px 0; border-radius: 12px; }
+    p { color: #555; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <h1>Generate PWA Icons</h1>
+  <p>Open this file in a browser, then click each button to download the icon PNGs.
+     Save them into the <code>icons/</code> folder as <code>icon-192.png</code>,
+     <code>icon-512.png</code>, and <code>apple-touch-icon.png</code>.</p>
+
+  <canvas id="c192" width="192" height="192"></canvas>
+  <button onclick="download('c192','icon-192.png')">Download icon-192.png</button>
+
+  <canvas id="c512" width="512" height="512"></canvas>
+  <button onclick="download('c512','icon-512.png')">Download icon-512.png</button>
+
+  <canvas id="c180" width="180" height="180"></canvas>
+  <button onclick="download('c180','apple-touch-icon.png')">Download apple-touch-icon.png</button>
+
+  <script>
+    function drawIcon(canvas) {
+      const s = canvas.width;
+      const ctx = canvas.getContext('2d');
+      const r = s * 0.196; // corner radius
+
+      // Background
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.lineTo(s - r, 0);
+      ctx.quadraticCurveTo(s, 0, s, r);
+      ctx.lineTo(s, s - r);
+      ctx.quadraticCurveTo(s, s, s - r, s);
+      ctx.lineTo(r, s);
+      ctx.quadraticCurveTo(0, s, 0, s - r);
+      ctx.lineTo(0, r);
+      ctx.quadraticCurveTo(0, 0, r, 0);
+      ctx.closePath();
+      ctx.fillStyle = '#2563eb';
+      ctx.fill();
+
+      const cx = s / 2;
+
+      // House body
+      ctx.fillStyle = 'white';
+      const bodyX = s * 0.266, bodyY = s * 0.484;
+      const bodyW = s * 0.469, bodyH = s * 0.375;
+      ctx.beginPath();
+      ctx.roundRect(bodyX, bodyY, bodyW, bodyH, s * 0.016);
+      ctx.fill();
+
+      // Roof (triangle)
+      ctx.beginPath();
+      ctx.moveTo(cx, s * 0.172);
+      ctx.lineTo(s * 0.188, s * 0.516);
+      ctx.lineTo(s * 0.813, s * 0.516);
+      ctx.closePath();
+      ctx.fillStyle = 'white';
+      ctx.fill();
+
+      // Door
+      ctx.fillStyle = '#2563eb';
+      const dX = cx - s * 0.078, dY = s * 0.656;
+      const dW = s * 0.156, dH = s * 0.203;
+      ctx.beginPath();
+      ctx.roundRect(dX, dY, dW, dH, s * 0.016);
+      ctx.fill();
+
+      // Door knob
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(cx + s * 0.055, dY + dH * 0.56, s * 0.016, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Left window
+      ctx.fillStyle = '#bfdbfe';
+      ctx.beginPath();
+      ctx.roundRect(bodyX + s * 0.031, bodyY + s * 0.070, s * 0.125, s * 0.109, s * 0.012);
+      ctx.fill();
+
+      // Right window
+      ctx.beginPath();
+      ctx.roundRect(bodyX + bodyW - s * 0.031 - s * 0.125, bodyY + s * 0.070, s * 0.125, s * 0.109, s * 0.012);
+      ctx.fill();
+    }
+
+    // Draw all canvases
+    ['c192', 'c512', 'c180'].forEach(id => drawIcon(document.getElementById(id)));
+
+    function download(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const a = document.createElement('a');
+      a.download = filename;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }
+  </script>
+</body>
+</html>
