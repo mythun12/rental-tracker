@@ -80,7 +80,7 @@ function fmtMoney(n) {
   if (n == null || n === '') return '—';
   const num = Number(n);
   if (isNaN(num)) return '—';
-  return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function esc(str) {
@@ -511,6 +511,7 @@ function paymentRowHTML(pmt, propId, tenancyId, readOnly) {
           <div class="row-actions">
             <button class="btn-tiny btn-secondary" onclick="openEditPayment('${propId}','${tenancyId}','${pmt.id}')">Edit</button>
             <button class="btn-tiny btn-danger-outline" onclick="confirmDeletePayment('${propId}','${tenancyId}','${pmt.id}')">Delete</button>
+            ${['Outstanding','Partial','Late'].includes(status) ? `<button class="btn-tiny btn-whatsapp" onclick="sendWhatsAppReminder('${propId}','${tenancyId}','${pmt.id}')">WhatsApp</button>` : ''}
           </div>` : ''}
       </div>
     </div>`;
@@ -625,6 +626,7 @@ function openNewTenancy(propId) {
   document.getElementById('ten-id').value           = '';
   document.getElementById('modal-tenancy-title').textContent = 'Add Tenant';
   document.getElementById('ten-name').value         = '';
+  document.getElementById('ten-phone').value        = '';
   document.getElementById('ten-lease-start').value  = todayStr();
   document.getElementById('ten-rent').value         = '';
   document.getElementById('ten-deposit').value      = '';
@@ -642,6 +644,7 @@ function openEditTenancy(propId) {
   document.getElementById('ten-id').value           = t.id;
   document.getElementById('modal-tenancy-title').textContent = 'Edit Current Tenant';
   document.getElementById('ten-name').value         = t.tenantName;
+  document.getElementById('ten-phone').value        = t.phone || '';
   document.getElementById('ten-lease-start').value  = t.leaseStart;
   document.getElementById('ten-rent').value         = t.monthlyRent;
   document.getElementById('ten-deposit').value      = t.depositPaid;
@@ -659,6 +662,7 @@ document.getElementById('form-tenancy').addEventListener('submit', async (e) => 
 
   const data = {
     tenantName:        document.getElementById('ten-name').value.trim(),
+    phone:             document.getElementById('ten-phone').value.trim(),
     leaseStart:        document.getElementById('ten-lease-start').value,
     monthlyRent:       parseFloat(document.getElementById('ten-rent').value)     || 0,
     depositPaid:       parseFloat(document.getElementById('ten-deposit').value)  || 0,
@@ -690,6 +694,7 @@ function openEndTenancy(propId) {
   document.getElementById('end-ten-name').textContent = t.tenantName;
   document.getElementById('end-ten-date').value     = todayStr();
   document.getElementById('new-ten-name').value     = '';
+  document.getElementById('new-ten-phone').value    = '';
   document.getElementById('new-ten-lease-start').value = todayStr();
   document.getElementById('new-ten-rent').value     = '';
   document.getElementById('new-ten-deposit').value  = '';
@@ -714,6 +719,7 @@ document.getElementById('form-end-tenancy').addEventListener('submit', async (e)
     prop.tenancies.push({
       id:                 generateId(),
       tenantName:         newName,
+      phone:              document.getElementById('new-ten-phone').value.trim(),
       leaseStart:         document.getElementById('new-ten-lease-start').value,
       leaseEnd:           null,
       monthlyRent:        parseFloat(document.getElementById('new-ten-rent').value)     || 0,
@@ -830,6 +836,38 @@ function confirmDeletePayment(propId, tenancyId, payId) {
     await syncSave();
     renderPayments();
   });
+}
+
+function sendWhatsAppReminder(propId, tenancyId, payId) {
+  const prop    = (appData.properties || []).find(p => p.id === propId);
+  if (!prop) return;
+  const tenancy = prop.tenancies.find(t => t.id === tenancyId);
+  if (!tenancy) return;
+  const pmt     = tenancy.payments.find(p => p.id === payId);
+  if (!pmt) return;
+
+  const phone = (tenancy.phone || '').replace(/\s+/g, '');
+  if (!phone) {
+    showToast('No phone number saved for this tenant. Edit the tenant to add one.');
+    return;
+  }
+
+  const amtDue  = Number(pmt.amountDue)  || 0;
+  const amtPaid = Number(pmt.amountPaid) || 0;
+  const status  = calcStatus(pmt);
+
+  let msg = `Hi ${tenancy.tenantName}, this is a reminder regarding your rent for ${prop.name}.`;
+  if (status === 'Outstanding') {
+    msg += ` Your payment of ${fmtMoney(amtDue)} was due on ${fmtDate(pmt.dueDate)} and has not been received yet.`;
+  } else if (status === 'Partial') {
+    msg += ` Your payment of ${fmtMoney(amtDue)} was due on ${fmtDate(pmt.dueDate)}. We have received ${fmtMoney(amtPaid)}, with ${fmtMoney(amtDue - amtPaid)} still outstanding.`;
+  } else if (status === 'Late') {
+    msg += ` Your payment of ${fmtMoney(amtDue)} due on ${fmtDate(pmt.dueDate)} was received late on ${fmtDate(pmt.dateReceived)}.`;
+  }
+  msg += ' Please let us know if you have any questions. Thank you.';
+
+  const cleanPhone = phone.replace(/[^\d+]/g, '');
+  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 /* ══════════════════════════════════════════════════════════

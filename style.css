@@ -334,6 +334,7 @@ html, body {
 }
 .btn-tiny.btn-secondary  { background: var(--grey-bg); color: var(--text); border: 1px solid var(--border); }
 .btn-tiny.btn-danger-outline { background: transparent; color: var(--red); border: 1px solid var(--red); }
+.btn-tiny.btn-whatsapp { background: #25d366; color: #fff; border: 1px solid #25d366; }
 .btn-tiny:active { opacity: 0.7; }
 
 /* ── Inputs / Forms ───────────────────────────────────── */
