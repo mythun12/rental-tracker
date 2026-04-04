@@ -6,7 +6,7 @@
 const GOOGLE_CLIENT_ID  = '700900134806-rt7i161neau18ljjg3afsgl8l1c6opcr.apps.googleusercontent.com';   // ← paste here
 const SHARED_FOLDER_ID  = '1CR2VMSu_HA_KLXBKk-w8mrfDRNunRd4Z';   // ← paste here
 const FILE_NAME         = 'rental-tracker-data.json';
-const SCOPES            = 'https://www.googleapis.com/auth/drive';
+const SCOPES            = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILES_URL   = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_UPLOAD_URL  = 'https://www.googleapis.com/upload/drive/v3/files';
 
