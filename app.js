@@ -61,6 +61,7 @@ async function syncSave() {
   // Auto-export to Google Sheet in the background (non-blocking)
   try {
     await Drive.exportToSheets(_buildSheetsData());
+    showToast('Sheet export done!', 4000);
   } catch (err) {
     console.warn('Sheet export failed (data still saved):', err);
     showToast('Sheet export error: ' + err.message, 8000);
