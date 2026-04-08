@@ -194,14 +194,17 @@
       <label class="form-label">Lease Start Date *
         <input type="date" id="ten-lease-start" class="form-input" required />
       </label>
-      <label class="form-label">Monthly Rent ($) *
-        <input type="number" id="ten-rent" class="form-input" placeholder="e.g. 1500" min="0" step="0.01" required />
+      <label class="form-label">Monthly Rent (₹) *
+        <input type="number" id="ten-rent" class="form-input" placeholder="e.g. 15000" min="0" step="0.01" required />
       </label>
-      <label class="form-label">Deposit Paid ($) *
+      <label class="form-label">Deposit Paid (₹) *
         <input type="number" id="ten-deposit" class="form-input" placeholder="e.g. 3000" min="0" step="0.01" required />
       </label>
       <label class="form-label">Yearly Rent Increment (%) *
         <input type="number" id="ten-increment" class="form-input" placeholder="e.g. 3" min="0" step="0.1" value="0" required />
+      </label>
+      <label class="form-label">Payment Due Day of Month *
+        <input type="number" id="ten-due-day" class="form-input" placeholder="e.g. 1" min="1" max="28" value="1" required />
       </label>
       <div id="ten-end-note" class="info-box hidden">
         Past tenancy records are read-only — editing applies to current tenant only.
@@ -245,14 +248,17 @@
       <label class="form-label">Lease Start Date *
         <input type="date" id="new-ten-lease-start" class="form-input" required />
       </label>
-      <label class="form-label">Monthly Rent ($) *
-        <input type="number" id="new-ten-rent" class="form-input" placeholder="e.g. 1600" min="0" step="0.01" required />
+      <label class="form-label">Monthly Rent (₹) *
+        <input type="number" id="new-ten-rent" class="form-input" placeholder="e.g. 16000" min="0" step="0.01" required />
       </label>
-      <label class="form-label">Deposit Paid ($) *
+      <label class="form-label">Deposit Paid (₹) *
         <input type="number" id="new-ten-deposit" class="form-input" placeholder="e.g. 3200" min="0" step="0.01" required />
       </label>
       <label class="form-label">Yearly Rent Increment (%) *
         <input type="number" id="new-ten-increment" class="form-input" placeholder="e.g. 3" min="0" step="0.1" value="0" required />
+      </label>
+      <label class="form-label">Payment Due Day of Month *
+        <input type="number" id="new-ten-due-day" class="form-input" placeholder="e.g. 1" min="1" max="28" value="1" required />
       </label>
       <div class="form-actions">
         <button type="button" class="btn-secondary modal-close" data-modal="modal-end-tenancy">Cancel</button>
@@ -276,10 +282,10 @@
       <label class="form-label">Due Date *
         <input type="date" id="pay-due-date" class="form-input" required />
       </label>
-      <label class="form-label">Amount Due ($) *
-        <input type="number" id="pay-amount-due" class="form-input" placeholder="e.g. 1500" min="0" step="0.01" required />
+      <label class="form-label">Amount Due (₹) *
+        <input type="number" id="pay-amount-due" class="form-input" placeholder="e.g. 15000" min="0" step="0.01" required />
       </label>
-      <label class="form-label">Amount Paid ($)
+      <label class="form-label">Amount Paid (₹)
         <input type="number" id="pay-amount-paid" class="form-input" placeholder="e.g. 1500" min="0" step="0.01" />
       </label>
       <label class="form-label">Date Received

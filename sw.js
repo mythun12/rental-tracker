@@ -2,7 +2,7 @@
    SW.JS — Service Worker for offline support & PWA install
 ══════════════════════════════════════════════════════════ */
 
-const CACHE_NAME = 'rental-tracker-v2';
+const CACHE_NAME = 'rental-tracker-v3';
 
 const APP_SHELL = [
   '/',

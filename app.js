@@ -146,6 +146,29 @@ function emptyData() {
 /* ──────────────────────────────────────────────────────────
    PAYMENT STATUS — auto-calculated, never stored
 ────────────────────────────────────────────────────────── */
+function calcNextDueDate(tenancy) {
+  const dueDay   = tenancy.paymentDueDay || 1;
+  const payments = tenancy.payments || [];
+
+  if (payments.length === 0) {
+    // First payment: due on lease start date
+    return tenancy.leaseStart;
+  }
+
+  // Find the latest recorded due date
+  const lastDue = [...payments]
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .pop().dueDate;
+
+  // Advance one month, clamped to last day of that month
+  const d = new Date(lastDue + 'T12:00:00');
+  d.setDate(1);
+  d.setMonth(d.getMonth() + 1);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(dueDay, lastDay));
+  return d.toISOString().slice(0, 10);
+}
+
 function calcStatus(pmt) {
   const now     = new Date(); now.setHours(0,0,0,0);
   const due     = new Date(pmt.dueDate + 'T12:00:00');
@@ -680,6 +703,7 @@ function openNewTenancy(propId) {
   document.getElementById('ten-rent').value         = '';
   document.getElementById('ten-deposit').value      = '';
   document.getElementById('ten-increment').value    = '0';
+  document.getElementById('ten-due-day').value      = '1';
   document.getElementById('ten-end-note').classList.add('hidden');
   openModal('modal-tenancy');
 }
@@ -698,6 +722,7 @@ function openEditTenancy(propId) {
   document.getElementById('ten-rent').value         = t.monthlyRent;
   document.getElementById('ten-deposit').value      = t.depositPaid;
   document.getElementById('ten-increment').value    = t.yearlyIncrementPct || 0;
+  document.getElementById('ten-due-day').value      = t.paymentDueDay || 1;
   document.getElementById('ten-end-note').classList.remove('hidden');
   openModal('modal-tenancy');
 }
@@ -716,6 +741,7 @@ document.getElementById('form-tenancy').addEventListener('submit', async (e) => 
     monthlyRent:       parseFloat(document.getElementById('ten-rent').value)     || 0,
     depositPaid:       parseFloat(document.getElementById('ten-deposit').value)  || 0,
     yearlyIncrementPct:parseFloat(document.getElementById('ten-increment').value)|| 0,
+    paymentDueDay:     parseInt(document.getElementById('ten-due-day').value)    || 1,
   };
 
   if (tenId) {
@@ -742,12 +768,13 @@ function openEndTenancy(propId) {
   document.getElementById('end-ten-id').value       = t.id;
   document.getElementById('end-ten-name').textContent = t.tenantName;
   document.getElementById('end-ten-date').value     = todayStr();
-  document.getElementById('new-ten-name').value     = '';
-  document.getElementById('new-ten-phone').value    = '';
+  document.getElementById('new-ten-name').value      = '';
+  document.getElementById('new-ten-phone').value     = '';
   document.getElementById('new-ten-lease-start').value = todayStr();
-  document.getElementById('new-ten-rent').value     = '';
-  document.getElementById('new-ten-deposit').value  = '';
-  document.getElementById('new-ten-increment').value= '0';
+  document.getElementById('new-ten-rent').value      = '';
+  document.getElementById('new-ten-deposit').value   = '';
+  document.getElementById('new-ten-increment').value = '0';
+  document.getElementById('new-ten-due-day').value   = '1';
   openModal('modal-end-tenancy');
 }
 
@@ -774,6 +801,7 @@ document.getElementById('form-end-tenancy').addEventListener('submit', async (e)
       monthlyRent:        parseFloat(document.getElementById('new-ten-rent').value)     || 0,
       depositPaid:        parseFloat(document.getElementById('new-ten-deposit').value)  || 0,
       yearlyIncrementPct: parseFloat(document.getElementById('new-ten-increment').value)|| 0,
+      paymentDueDay:      parseInt(document.getElementById('new-ten-due-day').value)    || 1,
       payments:           []
     });
   }
@@ -799,7 +827,7 @@ function openAddPayment() {
   document.getElementById('pay-prop-id').value      = propId;
   document.getElementById('pay-tenancy-id').value   = t.id;
   document.getElementById('modal-payment-title').textContent = 'Log Payment';
-  document.getElementById('pay-due-date').value     = '';
+  document.getElementById('pay-due-date').value     = calcNextDueDate(t);
   document.getElementById('pay-amount-due').value   = t.monthlyRent;
   document.getElementById('pay-amount-paid').value  = '';
   document.getElementById('pay-date-received').value= todayStr();
