@@ -63,6 +63,7 @@ async function syncSave() {
     await Drive.exportToSheets(_buildSheetsData());
   } catch (err) {
     console.warn('Sheet export failed (data still saved):', err);
+    showToast('Sheet export error: ' + err.message, 8000);
   }
 }
 
