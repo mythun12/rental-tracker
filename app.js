@@ -57,6 +57,53 @@ async function syncSave() {
     showToast('Error saving. Please try again.');
     throw err;
   }
+
+  // Auto-export to Google Sheet in the background (non-blocking)
+  try {
+    await Drive.exportToSheets(_buildSheetsData());
+  } catch (err) {
+    console.warn('Sheet export failed (data still saved):', err);
+  }
+}
+
+function _buildSheetsData() {
+  const properties = appData.properties || [];
+
+  const payments = [['Property', 'Tenant', 'Due Date', 'Amount Due (Rs)', 'Amount Paid (Rs)', 'Status', 'Date Received', 'Notes']];
+  const tenants  = [['Property', 'Tenant', 'Phone', 'Lease Start', 'Lease End', 'Monthly Rent (Rs)', 'Deposit (Rs)', 'Increment %/yr']];
+  const issues   = [['Property', 'Date', 'Description', 'Status']];
+
+  for (const prop of properties) {
+    for (const tenancy of (prop.tenancies || [])) {
+      tenants.push([
+        prop.name,
+        tenancy.tenantName,
+        tenancy.phone || '',
+        tenancy.leaseStart,
+        tenancy.leaseEnd || 'Present',
+        Number(tenancy.monthlyRent)  || 0,
+        Number(tenancy.depositPaid)  || 0,
+        tenancy.yearlyIncrementPct   || 0
+      ]);
+      for (const pmt of (tenancy.payments || [])) {
+        payments.push([
+          prop.name,
+          tenancy.tenantName,
+          pmt.dueDate,
+          Number(pmt.amountDue)  || 0,
+          Number(pmt.amountPaid) || 0,
+          calcStatus(pmt),
+          pmt.dateReceived || '',
+          pmt.notes        || ''
+        ]);
+      }
+    }
+    for (const issue of (prop.issues || [])) {
+      issues.push([prop.name, issue.date, issue.description, issue.status]);
+    }
+  }
+
+  return { payments, tenants, issues };
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -860,11 +907,11 @@ function sendWhatsAppReminder(propId, tenancyId, payId) {
   if (status === 'Outstanding') {
     msg += ` Your payment of ${fmtMoney(amtDue)} was due on ${fmtDate(pmt.dueDate)} and has not been received yet.`;
   } else if (status === 'Partial') {
-    msg += ` Your payment of ${fmtMoney(amtDue)} was due on ${fmtDate(pmt.dueDate)}. We have received ${fmtMoney(amtPaid)}, with ${fmtMoney(amtDue - amtPaid)} still outstanding.`;
+    msg += ` Your payment of ${fmtMoney(amtDue)} was due on ${fmtDate(pmt.dueDate)}. I have received ${fmtMoney(amtPaid)}, with ${fmtMoney(amtDue - amtPaid)} still outstanding.`;
   } else if (status === 'Late') {
     msg += ` Your payment of ${fmtMoney(amtDue)} due on ${fmtDate(pmt.dueDate)} was received late on ${fmtDate(pmt.dateReceived)}.`;
   }
-  msg += ' Please let us know if you have any questions. Thank you.';
+  msg += ' Please let me know if you have any questions. Thank you.';
 
   const cleanPhone = phone.replace(/[^\d+]/g, '');
   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
