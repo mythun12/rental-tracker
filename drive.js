@@ -6,11 +6,14 @@
 const GOOGLE_CLIENT_ID  = '700900134806-rt7i161neau18ljjg3afsgl8l1c6opcr.apps.googleusercontent.com';   // ← paste here
 const SHARED_FOLDER_ID  = '1CR2VMSu_HA_KLXBKk-w8mrfDRNunRd4Z';   // ← paste here
 const FILE_NAME         = 'rental-tracker-data.json';
-const SCOPES            = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
+const SCOPES            = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILES_URL   = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_UPLOAD_URL  = 'https://www.googleapis.com/upload/drive/v3/files';
-const SHEET_FILE_NAME   = 'rental-tracker-export';
-const SHEETS_URL        = 'https://sheets.googleapis.com/v4/spreadsheets';
+const CSV_FILES         = {
+  payments: 'rental-tracker-payments.csv',
+  tenants:  'rental-tracker-tenants.csv',
+  issues:   'rental-tracker-issues.csv',
+};
 
 window.Drive = (() => {
   let tokenClient   = null;
@@ -243,91 +246,60 @@ window.Drive = (() => {
     };
   }
 
-  /* ─── Export all data to a Google Sheet ──────────────── */
+  /* ─── Export all data as CSV files in the Drive folder ── */
   async function exportToSheets(sheetsData) {
-    const sheetId = await _findOrCreateSheet();
-    await _ensureSheetTabs(sheetId, ['Payments', 'Tenants', 'Issues']);
-    await _clearAndWrite(sheetId, sheetsData);
+    await Promise.all([
+      _uploadCSV(CSV_FILES.payments, _toCSV(sheetsData.payments)),
+      _uploadCSV(CSV_FILES.tenants,  _toCSV(sheetsData.tenants)),
+      _uploadCSV(CSV_FILES.issues,   _toCSV(sheetsData.issues)),
+    ]);
   }
 
-  async function _findOrCreateSheet() {
+  function _toCSV(rows) {
+    return rows.map(row =>
+      row.map(cell => {
+        const s = String(cell == null ? '' : cell);
+        return (s.includes(',') || s.includes('"') || s.includes('\n'))
+          ? '"' + s.replace(/"/g, '""') + '"'
+          : s;
+      }).join(',')
+    ).join('\r\n');
+  }
+
+  async function _uploadCSV(fileName, csvContent) {
     const q = encodeURIComponent(
-      `name='${SHEET_FILE_NAME}' and '${SHARED_FOLDER_ID}' in parents and trashed=false and mimeType='application/vnd.google-apps.spreadsheet'`
+      `name='${fileName}' and '${SHARED_FOLDER_ID}' in parents and trashed=false`
     );
     const resp = await _apiGet(
       `${DRIVE_FILES_URL}?q=${q}&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true`
     );
     const result = await resp.json();
-    if (result.files && result.files.length > 0) return result.files[0].id;
+    const existing = result.files && result.files.length > 0 ? result.files[0] : null;
 
-    const createResp = await _apiRequest(
-      `${DRIVE_FILES_URL}?supportsAllDrives=true`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: SHEET_FILE_NAME,
-          mimeType: 'application/vnd.google-apps.spreadsheet',
-          parents: [SHARED_FOLDER_ID]
-        })
-      }
-    );
-    const file = await createResp.json();
-    return file.id;
-  }
-
-  async function _ensureSheetTabs(sheetId, names) {
-    const resp = await _apiGet(`${SHEETS_URL}/${sheetId}?fields=sheets.properties`);
-    const info = await resp.json();
-    const existing = info.sheets || [];
-    const existingTitles = existing.map(s => s.properties.title);
-
-    const requests = [];
-    for (const name of names) {
-      if (!existingTitles.includes(name)) {
-        // Rename the default 'Sheet1' to the first tab name, add the rest
-        if (name === names[0] && existingTitles.includes('Sheet1')) {
-          const sheet1 = existing.find(s => s.properties.title === 'Sheet1');
-          requests.push({
-            updateSheetProperties: {
-              properties: { sheetId: sheet1.properties.sheetId, title: name },
-              fields: 'title'
-            }
-          });
-        } else {
-          requests.push({ addSheet: { properties: { title: name } } });
-        }
-      }
+    if (existing) {
+      await _apiRequest(
+        `${DRIVE_UPLOAD_URL}/${existing.id}?uploadType=media&supportsAllDrives=true`,
+        { method: 'PATCH', headers: { 'Content-Type': 'text/csv' }, body: csvContent }
+      );
+    } else {
+      const boundary = 'rt_csv_boundary';
+      const metadata = JSON.stringify({ name: fileName, parents: [SHARED_FOLDER_ID] });
+      const body = [
+        `--${boundary}`,
+        'Content-Type: application/json; charset=UTF-8',
+        '',
+        metadata,
+        `--${boundary}`,
+        'Content-Type: text/csv',
+        '',
+        csvContent,
+        `--${boundary}--`,
+      ].join('\r\n');
+      await _apiRequest(
+        `${DRIVE_UPLOAD_URL}?uploadType=multipart&supportsAllDrives=true`,
+        { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body }
+      );
     }
-
-    if (requests.length > 0) {
-      await _apiRequest(`${SHEETS_URL}/${sheetId}:batchUpdate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requests })
-      });
-    }
-  }
-
-  async function _clearAndWrite(sheetId, sheetsData) {
-    await _apiRequest(`${SHEETS_URL}/${sheetId}/values:batchClear`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ranges: ['Payments', 'Tenants', 'Issues'] })
-    });
-
-    await _apiRequest(`${SHEETS_URL}/${sheetId}/values:batchUpdate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        valueInputOption: 'RAW',
-        data: [
-          { range: 'Payments!A1', values: sheetsData.payments },
-          { range: 'Tenants!A1',  values: sheetsData.tenants  },
-          { range: 'Issues!A1',   values: sheetsData.issues   }
-        ]
-      })
-    });
   }
 
   return { init, signIn, signOut, getCurrentUser, isSignedIn, loadData, saveData, exportToSheets };
